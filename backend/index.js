@@ -12,11 +12,17 @@ import applicationRoute from "./routes/application.route.js";
 dotenv.config({});
 
 const app = express();
-const isProduction = process.env.NODE_ENV === "production";
-const allowedOrigins = (process.env.CLIENT_URL || "")
-    .split(",")
-    .map((origin) => origin.trim())
-    .filter(Boolean);
+const defaultAllowedOrigins = [
+    "http://localhost:5173",
+    "http://127.0.0.1:5173",
+];
+const allowedOrigins = [...new Set([
+    ...defaultAllowedOrigins,
+    ...(process.env.CLIENT_URL || "")
+        .split(",")
+        .map((origin) => origin.trim())
+        .filter(Boolean),
+])];
 
 // middleware
 app.use(express.json());
@@ -26,11 +32,11 @@ const corsOptions = {
     origin(origin, callback) {
         if (!origin) return callback(null, true);
 
-        if (!isProduction || allowedOrigins.length === 0 || allowedOrigins.includes(origin)) {
+        if (allowedOrigins.includes(origin)) {
             return callback(null, true);
         }
 
-        return callback(new Error("CORS origin not allowed"));
+        return callback(new Error(`CORS origin not allowed: ${origin}`));
     },
     credentials:true
 }
@@ -46,6 +52,20 @@ app.use("/api/v1/user", userRoute);
 app.use("/api/v1/company", companyRoute);
 app.use("/api/v1/job", jobRoute);
 app.use("/api/v1/application", applicationRoute);
+
+app.use((err, req, res, next) => {
+    console.error(err);
+
+    if (res.headersSent) {
+        return next(err);
+    }
+
+    const isCorsError = typeof err.message === "string" && err.message.startsWith("CORS origin not allowed");
+    return res.status(isCorsError ? 403 : 500).json({
+        success: false,
+        message: isCorsError ? err.message : "Server Error",
+    });
+});
 
 const startServer = async () => {
     await connectDB();
