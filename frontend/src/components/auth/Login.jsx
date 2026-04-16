@@ -43,7 +43,9 @@ const Login = () => {
             }
         } catch (error) {
             console.log(error);
-            toast.error(error.response.data.message);
+            toast.error(
+                error?.response?.data?.message || "Login failed. Make sure the backend server is running on port 8000."
+            );
         } finally {
             dispatch(setLoading(false));
         }
