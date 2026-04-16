@@ -47,15 +47,20 @@ app.use("/api/v1/company", companyRoute);
 app.use("/api/v1/job", jobRoute);
 app.use("/api/v1/application", applicationRoute);
 
-const server = app.listen(PORT, () => {
-    connectDB();
-    console.log(`Server running at port ${PORT}`);
-});
+const startServer = async () => {
+    await connectDB();
 
-server.on("error", (error) => {
-    if (error.code === "EADDRINUSE") {
-        console.error(`Port ${PORT} is already in use. Close the running process or restart with a free port.`);
-        process.exit(1);
-    }
-    throw error;
-});
+    const server = app.listen(PORT, () => {
+        console.log(`Server running at port ${PORT}`);
+    });
+
+    server.on("error", (error) => {
+        if (error.code === "EADDRINUSE") {
+            console.error(`Port ${PORT} is already in use. Close the running process or restart with a free port.`);
+            process.exit(1);
+        }
+        throw error;
+    });
+};
+
+startServer();
